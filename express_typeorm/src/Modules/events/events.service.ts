@@ -92,7 +92,7 @@ export class EventsService {
      */
 
   async getEventsWithWorkshops() {
-    throw new Error('TODO task 1');
+    return await this.eventRepository.find({ relations: ['workshops'] });
   }
 
   /* TODO: complete getFutureEventWithWorkshops so that it returns events with workshops, that have not yet started
@@ -162,6 +162,20 @@ export class EventsService {
     ```
      */
   async getFutureEventWithWorkshops() {
-    throw new Error('TODO task 2');
+    const events = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.workshops', 'workshop')
+      .groupBy('event.id')
+      .having('MIN(workshop.start) > event.createdAt')
+      .where((qb) => {
+        const subQuery = qb.subQuery()
+          .select('MIN(workshop.start)')
+          .from('workshop', 'workshop')
+          .where('workshop.eventId = event.id')
+          .getQuery();
+        return 'event.createdAt < ' + subQuery;
+      })
+      .getMany();
+    return events;
   }
 }
